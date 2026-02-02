@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from database import db
 from client import Client
+import psycopg2
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = 'postgresql://postgres:postgres@localhost:5432/daily_diet'
@@ -21,18 +22,26 @@ def create_user():
     client_age = client_data.get("age")
     client_weight = client_data.get("weight")
     client_email = client_data.get("email")
-    client_active = client_data.get("active")
+    client_active = client_data.get("active", True)
 
     new_client = Client(name= client_name, 
                         age= client_age, 
-                        weight= client_weight, 
+                        weight= client_weight,
                         email= client_email, 
                         active= client_active)
+    
+    fields_required = ["name", "age", "weight", "email"]
+
+    for field in fields_required:
+        if field not in client_data or client_data[field] is None:
+            return jsonify({"message": f"{field} is required"}), 400
+
 
     db.session.add(new_client)
     db.session.commit()
 
     return jsonify({"message": "created user"}), 200
+
 
 if __name__ == "__main__":
     database_app_info()
