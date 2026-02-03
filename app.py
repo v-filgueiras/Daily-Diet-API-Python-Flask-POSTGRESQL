@@ -6,18 +6,20 @@ from meal import Meal
 from datetime import datetime
 import psycopg2
 
+
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = 'postgresql://postgres:postgres@localhost:5432/daily_diet'
+app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:postgres@localhost:5432/daily_diet"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db.init_app(app)
 
+
 def database_app_info():
     with app.app_context():
-        db.drop_all()
         db.create_all()
 
-@app.route("/client", methods=['POST'])
+
+@app.route("/client", methods=["POST"])
 def create_user():
     client_data = request.get_json()
 
@@ -28,13 +30,13 @@ def create_user():
     client_active = client_data.get("active", True)
 
     new_client = Client(
-        name=client_name, 
-        age=client_age, 
+        name=client_name,
+        age=client_age,
         weight=client_weight,
-        email=client_email, 
+        email=client_email,
         active=client_active
     )
-    
+
     fields_required = ["name", "age", "weight", "email"]
 
     for field in fields_required:
@@ -46,7 +48,8 @@ def create_user():
 
     return jsonify({"message": "created user"}), 200
 
-@app.route("/clients", methods=['GET'])
+
+@app.route("/clients", methods=["GET"])
 def get_clients():
     clients = Client.query.all()
 
@@ -63,7 +66,8 @@ def get_clients():
 
     return jsonify({"clients": clients_list}), 200
 
-@app.route("/client/<int:client_id>", methods=['GET'])
+
+@app.route("/client/<int:client_id>", methods=["GET"])
 def get_client(client_id):
     client = db.session.get(Client, client_id)
 
@@ -79,7 +83,8 @@ def get_client(client_id):
         "active": client.active
     }), 200
 
-@app.route("/client/<int:client_id>", methods=['DELETE'])
+
+@app.route("/client/<int:client_id>", methods=["DELETE"])
 def delete_client(client_id):
     client = db.session.get(Client, client_id)
 
@@ -94,7 +99,8 @@ def delete_client(client_id):
         "name": client.name
     }), 200
 
-@app.route("/meal", methods=['POST'])
+
+@app.route("/meal", methods=["POST"])
 def create_meal():
     meal_data = request.get_json()
 
@@ -102,11 +108,13 @@ def create_meal():
     description = meal_data.get("description")
     total_calories = meal_data.get("total_calories")
 
-    new_meal = Meal(name= name,
-                    description= description,
-                    date_time = datetime.now(),
-                    total_calories= total_calories)
-    
+    new_meal = Meal(
+        name=name,
+        description=description,
+        date_time=datetime.now(),
+        total_calories=total_calories
+    )
+
     required_fields = ["name", "total_calories"]
 
     for field in required_fields:
@@ -117,6 +125,58 @@ def create_meal():
     db.session.commit()
 
     return jsonify({"message": "created meal"}), 200
+
+
+@app.route("/meal/<int:meal_id>", methods=["GET"])
+def get_meals(meal_id):
+    meal_data = db.session.get(Meal, meal_id)
+
+    if not meal_data:
+        return jsonify({"message": "we didn't find your meal"}), 400
+
+    return jsonify({
+        "message": "we find your meal",
+        "name": meal_data.name,
+        "description": meal_data.description,
+        "date_time": meal_data.date_time,
+        "total_calories": meal_data.total_calories
+    }), 200
+
+
+@app.route("/meal/<int:meal_id>", methods=["PUT"])
+def edit_meal(meal_id):
+    meal = db.session.get(Meal, meal_id)
+
+    if not meal:
+        return {"error": "Meal not found"}, 404
+
+    meal_data = request.get_json()
+
+    meal.name = meal_data.get("name")
+    meal.description = meal_data.get("description")
+    meal.date_time = meal_data.get("date_time")
+    meal.total_calories = meal_data.get("total_calories")
+
+    db.session.commit()
+
+    return {"message": "Meal updated successfully"}, 200
+
+
+@app.route("/meal/<int:meal_id>", methods=["DELETE"])
+def delete_meal(meal_id):
+    meal_data = db.session.get(Meal, meal_id)
+
+    db.session.delete(meal_data)
+    db.session.commit()
+
+    if not meal_data:
+        return jsonify({
+            "message": "we didn't find your meal"
+        }), 400
+
+    return jsonify({
+        "message": f"meal_id : {meal_id} deleted"
+    })
 
 
 if __name__ == "__main__":
