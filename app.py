@@ -24,11 +24,13 @@ def create_user():
     client_email = client_data.get("email")
     client_active = client_data.get("active", True)
 
-    new_client = Client(name= client_name, 
-                        age= client_age, 
-                        weight= client_weight,
-                        email= client_email, 
-                        active= client_active)
+    new_client = Client(
+        name=client_name, 
+        age=client_age, 
+        weight=client_weight,
+        email=client_email, 
+        active=client_active
+    )
     
     fields_required = ["name", "age", "weight", "email"]
 
@@ -36,14 +38,59 @@ def create_user():
         if field not in client_data or client_data[field] is None:
             return jsonify({"message": f"{field} is required"}), 400
 
-
     db.session.add(new_client)
     db.session.commit()
 
     return jsonify({"message": "created user"}), 200
 
+@app.route("/clients", methods=['GET'])
+def get_clients():
+    clients = Client.query.all()
+
+    clients_list = []
+    for client in clients:
+        clients_list.append({
+            "id": client.client_id,
+            "name": client.name,
+            "age": client.age,
+            "weight": client.weight,
+            "email": client.email,
+            "active": client.active
+        })
+
+    return jsonify({"clients": clients_list}), 200
+
+@app.route("/client/<int:client_id>", methods=['GET'])
+def get_client(client_id):
+    client = db.session.get(Client, client_id)
+
+    if not client:
+        return jsonify({"message": "Client not found"}), 404
+
+    return jsonify({
+        "client_id": client.client_id,
+        "name": client.name,
+        "age": client.age,
+        "weight": client.weight,
+        "email": client.email,
+        "active": client.active
+    }), 200
+
+@app.route("/client/<int:client_id>", methods=['DELETE'])
+def delete_client(client_id):
+    client = db.session.get(Client, client_id)
+
+    if not client:
+        return jsonify({"message": "Client not found"}), 404
+
+    db.session.delete(client)
+    db.session.commit()
+
+    return jsonify({
+        "message": "succesfull client deleted",
+        "name": client.name
+    }), 200
 
 if __name__ == "__main__":
     database_app_info()
     app.run(debug=True)
-
