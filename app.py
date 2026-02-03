@@ -2,6 +2,8 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from database import db
 from client import Client
+from meal import Meal
+from datetime import datetime
 import psycopg2
 
 app = Flask(__name__)
@@ -12,6 +14,7 @@ db.init_app(app)
 
 def database_app_info():
     with app.app_context():
+        db.drop_all()
         db.create_all()
 
 @app.route("/client", methods=['POST'])
@@ -90,6 +93,31 @@ def delete_client(client_id):
         "message": "succesfull client deleted",
         "name": client.name
     }), 200
+
+@app.route("/meal", methods=['POST'])
+def create_meal():
+    meal_data = request.get_json()
+
+    name = meal_data.get("name")
+    description = meal_data.get("description")
+    total_calories = meal_data.get("total_calories")
+
+    new_meal = Meal(name= name,
+                    description= description,
+                    date_time = datetime.now(),
+                    total_calories= total_calories)
+    
+    required_fields = ["name", "total_calories"]
+
+    for field in required_fields:
+        if field not in meal_data or meal_data[field] is None:
+            return jsonify({"message": f"{field} is required"}), 400
+
+    db.session.add(new_meal)
+    db.session.commit()
+
+    return jsonify({"message": "created meal"}), 200
+
 
 if __name__ == "__main__":
     database_app_info()
